@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<meta name="keywords" content="" />
+	<title>jq分页</title>
+	<meta name="keywords" content="" />
+	<meta name="description" content="" />
+	<link rel="stylesheet" type="text/css" href="css/common.css">
+	<link rel="stylesheet" type="text/css" href="./css/style.css">
+	<link rel="stylesheet" type="text/css" href="./css/swiper.min.css">
+	<link rel="stylesheet" type="text/css" href="./css/animate.css">
+</head>
+
+<body>
+	<div class="news_content">
+
+		<div class="news_list cleartfix">
+			<div class="mainbox">
+				<ul class="news_list_ul" id="newsList">
+					<!-- 	这里在下面js生成 -->
+				</ul>
+				<div class="pagebox">
+					<!-- 	这里在下面js生成 -->
+
+					<!-- <a class="btn">首页</a>
+						<a class="prev" onclick="pageClick(top)"> 上一页 </a>
+						<a class="cur">1</a>
+						<a href="#">2</a>
+						<a href="#">3</a>
+						<a href="#">4</a>
+						<a href="#">5</a>
+						<a href="#">6</a>
+						<a href="#" class="next">下一页</a>
+						<a href="#" class="btn">尾页</a> -->
+				</div>
+
+			</div>
+
+		</div>
+
+	</div>
+	</div>
+
+	<script src="js/jquery.min.js"></script>
+	<script src="js/setting.js"></script>
+
+	<script>
+		window.currentIndex = 0; //当前点击页
+		window.total = 0; //总页数
+		var urlPath = options[0].urlPath.url;//配置页读取的接口数据  setting.js中配置的接口地址
+		window.urlPath = urlPath;//全局定义路径
+	</script>
+
+	<script>
+		/*下方是默认第一次请求时获取数据并处理*/
+		$.ajax({
+			/*一页只展示6张图，接口一次返回的数据最多也是6张，page值会随着点击的页面改变，这里默认加载第一页，直接写死page，动态可见下方pageClick()*/
+			/*
+			下方是调我接口数据的参数说明，你们可以自己请求自己的接口获取数据，仅供参考
+			rows  每页行数
+			page  当前页
+			sidx  排序列
+			sord  排序类型
+			records  总记录数
+			total   总页数
+			*/
+			url: urlPath + "/api/GetImgApi/imgsInfo?data={\"rows\":6,\"page\":1,\"sidx\":\"\",\"sord\":\"asc\",\"records\":0,\"total\":0,\"totals\":0}",
+			type: "get",
+			dataType: "json",
+			success: function (data) {
+				console.log(JSON.stringify(data));
+				var s_htmlDetail = "";
+
+				for (i = 0; i < data.data.data.length; i++) {
+					s_htmlDetail += " <li>";
+					s_htmlDetail += " <a>";
+					s_htmlDetail += " <div class=\"imgcon\"><img src=\"" + data.data.data[i].ImgPath + "\" alt=\"\"></div>";
+					s_htmlDetail += " <div class=\"txtcon\">";
+
+					s_htmlDetail += " </div>";
+					s_htmlDetail += " </a>";
+					s_htmlDetail += " </li>";
+				}
+				if (data.data.data.length < 6) {
+					for (i = 1; i <= (6 - data.data.data.length); i++) {
+						s_htmlDetail += " <li style=\"visibility: hidden\">";
+						s_htmlDetail += " <a>";
+						s_htmlDetail += " <div class=\"imgcon\"><img src=\"\"></div>";
+						s_htmlDetail += " <div class=\"txtcon\">";
+						s_htmlDetail += " <h3 class=\"tit\"></h3>";
+						s_htmlDetail += " <p class=\"time\"</p>";
+						s_htmlDetail += " </div>";
+						s_htmlDetail += " </a>";
+						s_htmlDetail += " </li>";
+					}
+				}
+				$('#newsList').append(s_htmlDetail);
+
+				//处理分页下面的行
+				var s_htmlPage = "";
+				s_htmlPage += " <a class=\"btn\" id=\"first\" onclick=\"pageClick(1,'first')\">首页</a>";
+				s_htmlPage += " <a class=\"prev\"  id=\"prev\" onclick=\"pageClick((currentIndex-1),'prev')\"> 上一页 </a>";
+
+				for (i = 1; i <= (data.data.pagination.total > 5 ? 5 : data.data.pagination.total); i++) {
+					if (i == 1) {
+						s_htmlPage += " <a class=\"cur\"  onclick=\"pageClick(" + i + ",'btn" + i + "')\">" + i + "</a>";
+					} else {
+						s_htmlPage += " <a onclick=\"pageClick(" + i + ",'btn" + i + "')\">" + i + "</a>";
+					}
+				}
+				s_htmlPage += " <a  class=\"next\" id=\"next\" onclick=\"pageClick((currentIndex+1),'next')\">下一页</a>";
+				s_htmlPage += " <a  class=\"btn\" id=\"last\" onclick=\"pageClick('" + data.data.pagination.total + "','last')\">尾页</a>";
+
+				$('.pagebox').append(s_htmlPage);
+				window.currentIndex = 1;
+				window.total = data.data.pagination.total;
+			}
+		});
+	</script>
+
+
+	<script>
+		/*下方是点击分页请求数据获取数据并处理*/
+		/*pageClick点击的事件*/
+		pageClick = function (type, id) {
+			if (type < 1) {
+				type = 1;
+			} else if (type > window.total) {
+				type = window.total;
+			}
+
+			window.currentIndex = type;
+			$.ajax({
+				url: urlPath + "/api/GetImgApi/imgsInfo?data={\"rows\":6,\"page\":" + type + ",\"sidx\":\"\",\"sord\":\"asc\",\"records\":0,\"total\":0,\"totals\":0}",
+				type: "get",
+				dataType: "json",
+				success: function (data) {
+					//可以自行查看数据返回的格式
+					console.log(JSON.stringify(data));
+					$('#newsList').html("");
+					$('.pagebox').html("");
+					//处理下面的明细新闻
+					var s_htmlDetail = "";
+					for (i = 0; i < data.data.data.length; i++) {
+						s_htmlDetail += " <li>";
+						s_htmlDetail += " <a>";
+						s_htmlDetail += " <div class=\"imgcon\"><img src=\"" + data.data.data[i].ImgPath + "\" alt=\"\"></div>";
+						s_htmlDetail += " <div class=\"txtcon\">";
+
+						s_htmlDetail += " </div>";
+						s_htmlDetail += " </a>";
+						s_htmlDetail += " </li>";
+					}
+					if (data.data.data.length < 6) {
+						for (i = 1; i <= (6 - data.data.data.length); i++) {
+							s_htmlDetail += " <li style=\"visibility: hidden\">";
+							s_htmlDetail += " <a>";
+							s_htmlDetail += " <div class=\"imgcon\"><img src=\"\"></div>";
+							s_htmlDetail += " <div class=\"txtcon\">";
+
+							s_htmlDetail += " </div>";
+							s_htmlDetail += " </a>";
+							s_htmlDetail += " </li>";
+						}
+					}
+					$('#newsList').append(s_htmlDetail);
+
+					//处理分页下面的行
+					var s_htmlPage = "";
+
+					s_htmlPage += " <a class=\"btn\" id=\"first\" onclick=\"pageClick(1,'first')\">首页</a>";
+					s_htmlPage += " <a class=\"prev\"  id=\"prev\" onclick=\"pageClick((currentIndex-1),'prev')\"> 上一页 </a>";
+					/*这里写的比较麻烦，处理下方页码，一次最多展示5页，超出5页，重新计算排序
+					例：
+					点击第一页：1  2  3  4  5 
+					点击第二页：1  2  3  4  5 
+
+					点击第三页：1  2  3  4  5 
+					点击第四页: 2  3  4  5  6 
+					点击第五页: 3  4  5  6  7
+					点击第六页: 4  5  6  7  8
+					点击第七页: 5  6  7  8  9
+
+					无非就是考虑当前点击页码的位置，拿4举例，就是  第三位，第四位，第五位
+					*/
+
+					console.log("type=" + type);
+					var total = data.data.pagination.total;
+					/*判断页码大于等于四的，前面三位直接默认排序*/
+					if (type >= 4) {
+						/*判断当前页码是否在中间   type + 2 <= total  true的话说明在中间位置*/
+						if (type + 2 <= total) {
+							for (i = type - 2; i <= type + 2; i++) {
+								if (type == i) {
+									s_htmlPage += " <a class=\"cur\" id=\"btn" + i + "\" onclick=\"pageClick(" + i + ",'btn" + i + "')\">" + i + "</a>";
+								} else {
+									s_htmlPage += " <a id=\"btn" + i + "\" onclick=\"pageClick(" + i + ",'btn" + i + "')\">" + i + "</a>";
+								}
+							}
+
+						} else {
+							/*当前页码在倒数第二位*/
+							if (type + 1 <= total) {
+								for (i = type - 3; i <= type + 1; i++) {
+									if (type == i) {
+										s_htmlPage += " <a class=\"cur\" id=\"btn" + i + "\" onclick=\"pageClick(" + i + ",'btn" + i + "')\">" + i + "</a>";
+									} else {
+										s_htmlPage += " <a id=\"btn" + i + "\" onclick=\"pageClick(" + i + ",'btn" + i + "')\">" + i + "</a>";
+									}
+								}
+							} else {
+								/*当前页码在最后一位，但是要排除页码4，它减4就是0，不现实*/
+								if (type == total && type > 4) {
+									for (i = type - 4; i <= type; i++) {
+										if (type == i) {
+											s_htmlPage += " <a class=\"cur\" id=\"btn" + i + "\" onclick=\"pageClick(" + i + ",'btn" + i + "')\">" + i + "</a>";
+										} else {
+											s_htmlPage += " <a id=\"btn" + i + "\" onclick=\"pageClick(" + i + ",'btn" + i + "')\">" + i + "</a>";
+										}
+									}
+								} else {
+									for (i = type - 3; i <= type; i++) {
+										if (type == i) {
+											s_htmlPage += " <a class=\"cur\" id=\"btn" + i + "\" onclick=\"pageClick(" + i + ",'btn" + i + "')\">" + i + "</a>";
+										} else {
+											s_htmlPage += " <a id=\"btn" + i + "\" onclick=\"pageClick(" + i + ",'btn" + i + "')\">" + i + "</a>";
+										}
+									}
+								}
+
+							}
+						}
+
+					} else {
+						for (i = 1; i <= (total > 5 ? 5 : data.data.pagination.total); i++) {
+							if (type == i) {
+								s_htmlPage += " <a class=\"cur\" id=\"btn" + i + "\" onclick=\"pageClick(" + i + ",'btn" + i + "')\">" + i + "</a>";
+							} else {
+								s_htmlPage += " <a id=\"btn" + i + "\" onclick=\"pageClick(" + i + ",'btn" + i + "')\">" + i + "</a>";
+							}
+						}
+					}
+
+					s_htmlPage += "<a  class=\"next\" id=\"next\" onclick=\"pageClick((currentIndex+1),'next')\">下一页</a>";
+					s_htmlPage += " <a  class=\"btn\" id=\"last\" onclick=\"pageClick('" + total + "','last')\">尾页</a>";
+					$('.pagebox').append(s_htmlPage);
+					if (id == "first" || id == "last" || id == "prev" || id == "next") {
+						$('#' + id).addClass('cur');
+					}
+				}
+			});
+		}
+	</script>
+</body>
+
+</html>
